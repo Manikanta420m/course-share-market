@@ -257,7 +257,7 @@ const Creators = () => {
                 </tr>
                 <tr>
                   <td className="px-6 py-4 text-slate-900 font-medium">Setup Time</td>
-                  <td className="px-6 py-4 text-center text-green-600 font-semibold">< 1 Hour</td>
+                  <td className="px-6 py-4 text-center text-green-600 font-semibold">&lt; 1 Hour</td>
                   <td className="px-6 py-4 text-center text-yellow-500">1-3 Days</td>
                 </tr>
               </tbody>
