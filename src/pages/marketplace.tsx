@@ -1,127 +1,88 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, BookOpen } from "lucide-react";
+import { Search, Filter, BookOpen, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
-import CourseCard from "@/components/CourseCard";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import RealtimeCourseCard from "@/components/RealtimeCourseCard";
 
 const Marketplace = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("roi");
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user, profile, signOut } = useAuth();
 
-  const courses = [
-    {
-      id: 1,
-      title: "Mastering AI in 30 Days",
-      creator: "Alex Johnson",
-      price: 1000,
-      totalShares: 1000,
-      availableShares: 340,
-      sharePrice: 10,
-      revenueShared: 40,
-      totalRevenue: 150000,
-      students: 150,
-      image: "/placeholder.svg",
-      category: "Technology",
-      roi: 285,
-    },
-    {
-      id: 2,
-      title: "Python for Beginners",
-      creator: "Sarah Chen",
-      price: 800,
-      totalShares: 800,
-      availableShares: 156,
-      sharePrice: 15,
-      revenueShared: 35,
-      totalRevenue: 89600,
-      students: 112,
-      image: "/placeholder.svg",
-      category: "Programming",
-      roi: 156,
-    },
-    {
-      id: 3,
-      title: "Digital Marketing Mastery",
-      creator: "Mike Rodriguez",
-      price: 1200,
-      totalShares: 1200,
-      availableShares: 890,
-      sharePrice: 8,
-      revenueShared: 45,
-      totalRevenue: 36000,
-      students: 30,
-      image: "/placeholder.svg",
-      category: "Marketing",
-      roi: 45,
-    },
-    {
-      id: 4,
-      title: "React Development Bootcamp",
-      creator: "Emma Wilson",
-      price: 1500,
-      totalShares: 1500,
-      availableShares: 720,
-      sharePrice: 12,
-      revenueShared: 38,
-      totalRevenue: 93600,
-      students: 78,
-      image: "/placeholder.svg",
-      category: "Programming",
-      roi: 198,
-    },
-    {
-      id: 5,
-      title: "Graphic Design Fundamentals",
-      creator: "David Kim",
-      price: 600,
-      totalShares: 600,
-      availableShares: 245,
-      sharePrice: 7,
-      revenueShared: 42,
-      totalRevenue: 27000,
-      students: 45,
-      image: "/placeholder.svg",
-      category: "Design",
-      roi: 78,
-    },
-    {
-      id: 6,
-      title: "Data Science with Python",
-      creator: "Lisa Zhang",
-      price: 1800,
-      totalShares: 1800,
-      availableShares: 1200,
-      sharePrice: 20,
-      revenueShared: 50,
-      totalRevenue: 21600,
-      students: 12,
-      image: "/placeholder.svg",
-      category: "Technology",
-      roi: 12,
-    },
-  ];
+  const categories = ["All", "Technology", "Programming", "Marketing", "Design", "Business"];
 
-  const categories = ["All", "Technology", "Programming", "Marketing", "Design"];
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  useEffect(() => {
+    // Set up realtime subscription for courses
+    const channel = supabase
+      .channel('marketplace-courses')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'courses'
+        },
+        () => {
+          fetchCourses();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchCourses = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('courses')
+      .select(`
+        *,
+        profiles (full_name)
+      `)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+    
+    setCourses(data || []);
+    setLoading(false);
+  };
 
   const filteredCourses = courses
     .filter(course => 
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.creator.toLowerCase().includes(searchTerm.toLowerCase())
+      course.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .filter(course => 
-      selectedCategory === "all" || course.category.toLowerCase() === selectedCategory.toLowerCase()
+      selectedCategory === "all" || course.category?.toLowerCase() === selectedCategory.toLowerCase()
     )
     .sort((a, b) => {
-      if (sortBy === "roi") return b.roi - a.roi;
-      if (sortBy === "price") return a.sharePrice - b.sharePrice;
-      if (sortBy === "students") return b.students - a.students;
+      if (sortBy === "roi") {
+        const roiA = a.total_revenue > 0 ? ((a.total_revenue * a.revenue_share_percentage / 100) / (a.share_price * (a.total_shares - a.available_shares)) * 100) : 0;
+        const roiB = b.total_revenue > 0 ? ((b.total_revenue * b.revenue_share_percentage / 100) / (b.share_price * (b.total_shares - b.available_shares)) * 100) : 0;
+        return roiB - roiA;
+      }
+      if (sortBy === "price") return a.share_price - b.share_price;
+      if (sortBy === "students") return b.student_count - a.student_count;
       return 0;
     });
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-green-50">
@@ -147,12 +108,37 @@ const Marketplace = () => {
               <Link to="/portfolio" className="text-slate-600 hover:text-slate-900 transition-colors">
                 Portfolio
               </Link>
-              <Button variant="outline" className="border-slate-300">
-                Sign In
-              </Button>
-              <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
-                Get Started
-              </Button>
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <Link to="/dashboard">
+                    <Button variant="outline" className="border-slate-300">
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Button 
+                    onClick={handleSignOut}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Link to="/auth">
+                    <Button variant="outline" className="border-slate-300">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link to="/auth">
+                    <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
+                      Get Started
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -228,13 +214,12 @@ const Marketplace = () => {
         </div>
 
         {/* Course Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredCourses.map((course) => (
-            <CourseCard key={course.id} course={course} />
-          ))}
-        </div>
-
-        {filteredCourses.length === 0 && (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-slate-600">Loading courses...</p>
+          </div>
+        ) : filteredCourses.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-slate-400 mb-4">
               <BookOpen className="w-12 h-12 mx-auto" />
@@ -245,6 +230,16 @@ const Marketplace = () => {
             <p className="text-slate-600">
               Try adjusting your search or filter criteria
             </p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredCourses.map((course) => (
+              <RealtimeCourseCard 
+                key={course.id} 
+                course={course} 
+                onInvestment={fetchCourses}
+              />
+            ))}
           </div>
         )}
       </div>

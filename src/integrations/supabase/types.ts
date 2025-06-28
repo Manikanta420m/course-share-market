@@ -9,7 +9,222 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      courses: {
+        Row: {
+          available_shares: number
+          category: string | null
+          created_at: string | null
+          creator_id: string
+          description: string | null
+          id: string
+          image_url: string | null
+          price: number
+          revenue_share_percentage: number
+          share_price: number
+          status: Database["public"]["Enums"]["course_status"] | null
+          student_count: number | null
+          title: string
+          total_revenue: number | null
+          total_shares: number
+          updated_at: string | null
+        }
+        Insert: {
+          available_shares: number
+          category?: string | null
+          created_at?: string | null
+          creator_id: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          price: number
+          revenue_share_percentage: number
+          share_price: number
+          status?: Database["public"]["Enums"]["course_status"] | null
+          student_count?: number | null
+          title: string
+          total_revenue?: number | null
+          total_shares: number
+          updated_at?: string | null
+        }
+        Update: {
+          available_shares?: number
+          category?: string | null
+          created_at?: string | null
+          creator_id?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          price?: number
+          revenue_share_percentage?: number
+          share_price?: number
+          status?: Database["public"]["Enums"]["course_status"] | null
+          student_count?: number | null
+          title?: string
+          total_revenue?: number | null
+          total_shares?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investments: {
+        Row: {
+          course_id: string
+          current_value: number
+          id: string
+          investor_id: string
+          purchase_price: number
+          purchased_at: string | null
+          shares_owned: number
+          status: Database["public"]["Enums"]["investment_status"] | null
+          total_earnings: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          course_id: string
+          current_value: number
+          id?: string
+          investor_id: string
+          purchase_price: number
+          purchased_at?: string | null
+          shares_owned: number
+          status?: Database["public"]["Enums"]["investment_status"] | null
+          total_earnings?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          course_id?: string
+          current_value?: number
+          id?: string
+          investor_id?: string
+          purchase_price?: number
+          purchased_at?: string | null
+          shares_owned?: number
+          status?: Database["public"]["Enums"]["investment_status"] | null
+          total_earnings?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investments_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"] | null
+          total_earned: number | null
+          total_invested: number | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          role?: Database["public"]["Enums"]["user_role"] | null
+          total_earned?: number | null
+          total_invested?: number | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"] | null
+          total_earned?: number | null
+          total_invested?: number | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          course_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          investment_id: string | null
+          shares: number | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          course_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          investment_id?: string | null
+          shares?: number | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          course_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          investment_id?: string | null
+          shares?: number | null
+          type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "investments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +233,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      course_status: "draft" | "active" | "paused" | "completed"
+      investment_status: "active" | "sold" | "pending"
+      transaction_type:
+        | "course_purchase"
+        | "investment"
+        | "revenue_share"
+        | "share_sale"
+      user_role: "creator" | "investor" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +355,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      course_status: ["draft", "active", "paused", "completed"],
+      investment_status: ["active", "sold", "pending"],
+      transaction_type: [
+        "course_purchase",
+        "investment",
+        "revenue_share",
+        "share_sale",
+      ],
+      user_role: ["creator", "investor", "admin"],
+    },
   },
 } as const
